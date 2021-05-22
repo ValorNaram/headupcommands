@@ -22,7 +22,7 @@ The `login` command works hand in hand with the [_standard unix password manager
 
 **Your story:** You have your GitHub credentials in your password store and the firefox addon "PassFF" installed (in firefox) and want to log in to Github to do good software coding stuff. And you're tired opening firefox and going to GitHub login page on your own. Glad that you installed the scripts here into your `PATH` and so you just do ALT+Space to open krunner and you type in `login github`. Magically but not surprisingly you will be prompted for your password store certificate password and if you enter it correctly then firefox will open with the GitHub login url in the address bar. If you now have `PassFF` firefox addon configured properly and only one login for this site then it should fill in the credentials on its own, hit the login button to log you finally in to do you a favor.
 
-### Syntax
+#### Syntax
 
 `<name>` = Replace with the name of the gpg file in your password store. The search behind is **case-insensitive** and **recursive**. E.g. `login github` is the same as `login GitHub` as long as the pgp file has the name `GiThUb` or `gitHUB` etc. Never ever add the file extension `.pgp` because we're running Linux and can do better than our enemy users running Windows.
 
@@ -30,7 +30,7 @@ The `login` command works hand in hand with the [_standard unix password manager
 
 Log in to a site: `login <name>` e.g. `login github` or `login GitHub`.
 
-### Internal logic
+#### Internal logic
 
 1. You use the syntax `login <name>` e.g. `login GitHub` or `login github` as long as you have a gpg file named `GitHub` or `github` or even `Github`.
 
@@ -72,7 +72,7 @@ The `remote` command works hand in hand with the [_standard unix password manage
 
 **Your story:** You're an admin of thousand and one night servers and sick remembering the ssh commands to access each as you please or need. But you are a good admin and therefore stored each ssh command in an pgp file on its own. Glad that you installed the scripts here into your `PATH` and so you just do ALT+Space to open krunner and you type in `remote personalserver` and say krunner that it should open you a terminal so you can interact with it. Magically but not surprisingly you will be prompted for your password store certificate password and if you enter it correctly then it opens the terminal displaying the ssh command it is going to execute. Now SSH does it usual job you love it for.
 
-### Syntax
+#### Syntax
 
 `<name>` = Replace with the name of the gpg file in your password store. The search behind is **case-insensitive** and **recursive**. E.g. `remote personalserver` is the same as `remote PersonalServer` as long as the pgp file has the name `PersonalServer` or `pErSonALsErVer` etc. Never ever add the file extension `.pgp` because we're running Linux and can do better than our enemy users running Windows.
 
@@ -81,7 +81,7 @@ The `remote` command works hand in hand with the [_standard unix password manage
 Log in to a server: `remote <name>` e.g. `remote personalServer` or `remote Personalserver`.
 Log in to a server and issue a single command: `remote <name> <command to execute remotely (it is allowed that the command contains whitespaces but explicit quoting is not required)>` e.g. `remote personalserver sudo apt update && sudo apt upgrade` or `remote PersonalSERVER sudo apt update && sudo apt upgrade`.
 
-### Internal logic
+#### Internal logic
 
 1. You use the syntax `remote <name> [<remote command>]` e.g. `login personalServer`, `login PersonalSERVER`, `remote personalserver sudo apt update && sudo apt upgrade` or `remote PersonalSERVER sudo apt update && sudo apt upgrade` as long as you have a gpg file named `PeRsOnAlserver` or `personalserver` or even `PersonalSERVER`.
 
