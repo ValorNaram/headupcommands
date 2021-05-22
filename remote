@@ -1,0 +1,27 @@
+#!/bin/bash
+
+cd ~/.password-store
+
+result=$(tree -f -i -Q | grep -i "$1")
+result=$(echo "$result" | head -1)
+result=${result[0]}
+result=${result//.gpg/};
+result=${result//"./"/};
+result=${result//\"/};
+result=$(pass show "$result" | grep -i "ssh");
+result=${result//ssh /};
+
+echo $result
+
+if [ $2 = "" ];
+then
+	ssh $result
+else
+	remote_command=${@:2};
+	echo $remote_command
+	
+	ssh $result "$remote_command"
+	exitcode="$?"
+	echo 
+	echo "Remote command exited with '$exitcode'"
+fi;
