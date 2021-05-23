@@ -25,3 +25,5 @@ else
 	echo 
 	echo "Remote command exited with '$exitcode'"
 fi;
+
+echo "You can close this window"

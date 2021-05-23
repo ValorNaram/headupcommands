@@ -12,3 +12,5 @@ result=$(pass show "$result" | grep -i "url");
 result=${result//url: /};
 
 firefox $result
+
+echo "You can close this window"
