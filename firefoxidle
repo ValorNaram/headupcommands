@@ -1,0 +1,72 @@
+#!/bin/bash 
+
+cd ~
+
+arg="$1"
+
+perform_action() {
+
+	if [ "$arg" = "" ];
+	then
+		exit $1
+	elif [ "$arg" = "off" ];
+	then
+		systemctl poweroff
+	elif [ "$arg" = "poweroff" ];
+	then
+		systemctl poweroff
+	elif [ "$arg" = "0" ];
+	then
+		systemctl poweroff
+	elif [ "$arg" = "restart" ];
+	then
+		systemctl reboot
+	elif [ "$arg" = "reboot" ];
+	then
+		systemctl reboot
+	elif [ "$arg" = "boot" ];
+	then
+		systemctl reboot
+	elif [ "$arg" = "1" ];
+	then
+		systemctl reboot
+	fi;
+	
+	exit $1
+
+}
+
+# scans for `.part` files in the home directory. This is a temporally file firefox creates when it needs to download files in chunchs. Typically these are middle sized or large files like archives, programs and operating systems.
+result=$(tree -f -i -Q | grep -i ".part")
+result=$(echo "$result" | head -1) # Just take the first line
+result=${result[0]}
+result=${result//"./"/};
+result=${result//\"/};
+
+downloadprogress_begin=`stat -c %Y "$result"`
+
+while [ true ]
+do
+	firefox_sessions=$(pstree | grep -i "firefox")
+	downloadprogress_continue=`stat -c %Y "$result"`
+	if [ -z "$firefox_sessions" ];
+	then
+		echo "CODE:1, firefox has been closed."
+		perform_action 1
+		exit 1
+	fi;
+	
+	if [[ "$downloadprogress_continue" = "$downloadprogress_begin" ]];
+	then
+		# it does not download anymore so the download has been either paused, aborted or finished.
+		echo "CODE:2, file download in firefox paused, aborted or finished"
+		perform_action 2
+		exit 2
+	fi
+	
+	sleep 10 # sleep 10 seconds to give firefox a chance to update the `.part` file accordingly
+	
+	downloadprogress_begin="$downloadprogress_continue"
+		
+	
+done

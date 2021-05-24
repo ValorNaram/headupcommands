@@ -1,0 +1,58 @@
+#!/bin/bash 
+
+arg="$1"
+
+perform_action() {
+
+	if [ "$arg" = "" ];
+	then
+		exit $1
+	elif [ "$arg" = "off" ];
+	then
+		systemctl poweroff
+	elif [ "$arg" = "poweroff" ];
+	then
+		systemctl poweroff
+	elif [ "$arg" = "0" ];
+	then
+		systemctl poweroff
+	elif [ "$arg" = "restart" ];
+	then
+		systemctl reboot
+	elif [ "$arg" = "reboot" ];
+	then
+		systemctl reboot
+	elif [ "$arg" = "boot" ];
+	then
+		systemctl reboot
+	elif [ "$arg" = "1" ];
+	then
+		systemctl reboot
+	fi;
+	
+	exit $1
+
+}
+
+while [ true ]
+do
+	ranking=0
+	apt_sessions=$(pstree | grep -i "apt")
+	aptget_sessions=$(pstree | grep -i "apt-get")
+	
+	if [ -z "$apt_sessions" ];
+	then ranking=$(($ranking+1))
+	fi
+	
+	if [ -z "$aptget_sessions" ];
+	then ranking=$(($ranking+1))
+	fi
+	
+	if (( $ranking >= 2 ));
+        then perform_action 1
+        exit 1
+	fi
+	
+	sleep 10
+	
+done
