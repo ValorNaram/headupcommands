@@ -11,14 +11,15 @@ result=${result//\"/};
 result=$(pass show "$result" | grep -i "ssh");
 result=${result//ssh /};
 
-echo $result
+echo "Remote server: $result"
 
-if [ $2 = "" ];
+if [ -z "$2" ];
 then
 	ssh $result
 else
 	remote_command=${@:2};
-	echo $remote_command
+	echo "Remote command: $remote_command"
+	echo "--------------------------------------"
 	
 	ssh $result "$remote_command"
 	exitcode="$?"

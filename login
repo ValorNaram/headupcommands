@@ -1,16 +1,33 @@
 #!/bin/bash
 
+input="$1"
+
+open_firefox() {
+    url=${1//url: /};
+    
+    echo "opening url '$url' in firefox"
+    
+    firefox $url
+}
+
 cd ~/.password-store
-result=$(tree -f -i -Q | grep -i "$1")
+result=$(tree -f -i -Q | grep -i "$input")
 result=$(echo "$result" | head -1)
-echo $result
 result=${result[0]}
 result=${result//.gpg/};
 result=${result//"./"/};
 result=${result//\"/};
-result=$(pass show "$result" | grep -i "url");
-result=${result//url: /};
+content=$(pass show "$result")
+url=$(echo "$content" | grep -i "url");
+ssh=$(echo "$content" | grep -i "ssh");
+if ! [ -z "$url" ];
+then
+    open_firefox "$url"
+    echo "You can close this window"
+fi
 
-firefox $result
-
-echo "You can close this window"
+if ! [ -z "$ssh" ];
+then
+    remote_command=${@:2};
+    remote "$input" "$remote_command";
+fi;
