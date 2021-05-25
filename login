@@ -3,11 +3,31 @@
 input="$1"
 
 open_firefox() {
-    url=${1//url: /};
+	url=${1//url: /};
     
-    echo "opening url '$url' in firefox"
+	echo "opening url '$url' in firefox"
     
-    firefox $url
+	firefox $url
+}
+
+open_ssh() {
+	ssh=${1//ssh /};
+	
+	echo "Remote server: $ssh"
+	
+	if [ -z "$2" ];
+	then
+		echo "--------------------------------------"
+		ssh $ssh
+	else
+		echo "Remote command: $2"
+		echo "--------------------------------------"
+	
+		ssh $ssh "$2"
+		exitcode="$?"
+		echo 
+		echo "Remote command exited with '$exitcode'"
+	fi;
 }
 
 cd ~/.password-store
@@ -29,5 +49,6 @@ fi
 if ! [ -z "$ssh" ];
 then
     remote_command=${@:2};
-    remote "$input" "$remote_command";
+    #remote "$input" "$remote_command";
+    open_ssh "$ssh" "$remote_command";
 fi;
