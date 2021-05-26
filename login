@@ -1,32 +1,39 @@
 #!/bin/bash
 
 input="$1"
+arg=${@:2};
+executionmode=`ps -o stat= -p $$`
+echo $executionmode
+
+open_nothing() {
+	echo "Not opening '$1' because this is not supported!"
+}
 
 open_firefox() {
-	url=${1//url: /};
-    
 	echo "opening url '$url' in firefox"
     
 	firefox $url
 }
 
+open_sftp() {
+    xdg-open "$1"
+}
+
 open_ssh() {
-	ssh=${1//ssh /};
+	echo "Remote server: $1"
 	
-	echo "Remote server: $ssh"
-	
-	if [ -z "$2" ];
+	if [ -z "$arg" ];
 	then
-		echo "--------------------------------------"
-		ssh $ssh
+		echo "-------------------------------------------------------"
+		ssh $1
 	else
-		echo "Remote command: $2"
-		echo "--------------------------------------"
+		echo "Remote command: $arg"
+		echo "-------------------------------------------------------"
 	
-		ssh $ssh "$2"
+		ssh $1 "$arg"
 		exitcode="$?"
 		echo 
-		echo "Remote command exited with '$exitcode'"
+		echo "Remote command exited with code '$exitcode'."
 	fi;
 }
 
@@ -39,16 +46,51 @@ result=${result//"./"/};
 result=${result//\"/};
 content=$(pass show "$result")
 url=$(echo "$content" | grep -i "url");
-ssh=$(echo "$content" | grep -i "ssh");
-if ! [ -z "$url" ];
-then
-    open_firefox "$url"
-    echo "You can close this window"
-fi
+url=${url//url: /};
+url_sftp=$(echo "$url" | grep -i "sftp:");
+url_ssh=$(echo "$url" | grep -i "ssh:");
+url_https=$(echo "$url" | grep -i "https:");
 
-if ! [ -z "$ssh" ];
+if [[ "$executionmode" == "S" ]]; # script has been started in the background
 then
-    remote_command=${@:2};
-    #remote "$input" "$remote_command";
-    open_ssh "$ssh" "$remote_command";
-fi;
+    
+	if ! [ -z "$url_sftp" ];
+	then
+		open_sftp "$url_sftp"
+	elif ! [ -z "$url_sftp" ] && ! [ -z "$arg" ]; # and no second up to the last argument given
+	then
+		url_sftp=${url_sftp//sftp:/ssh:};
+		open_ssh "$url_sftp"
+	elif ! [ -z "$url_ssh" ];
+	then
+		url_ssh=${url_ssh//ssh:/sftp:};
+		open_sftp "$url_ssh"
+	elif ! [ -z "$url_https" ];
+	then
+		open_firefox "$url_https"
+	else
+		open_nothing
+	fi
+	echo "You can close this window"
+    exit 0
+    
+else # script has been started in the foreground
+    
+    if ! [ -z "$url_ssh" ];
+	then
+		open_ssh "$url_ssh"
+	elif ! [ -z "$url_sftp" ];
+	then
+		url_sftp=${url_sftp//sftp:/ssh:};
+		open_ssh "$url_sftp"
+	elif ! [ -z "$url_https" ];
+	then
+		open_firefox "$url_https"
+	else
+		open_nothing
+	fi
+	echo "You can close this window"
+    exit 0
+
+
+fi

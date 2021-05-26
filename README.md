@@ -14,11 +14,15 @@ On KDE use the shortcut ALT+Space to open krunner and then type in the command w
 
 ### login
 
+Opens the login url to a website, initiates a SSH connection or connects to a remote file system via sftp depending on the context you provide.
+
 `login` and `remote` share the same codebase.
 
 The `login` command works hand in hand with the [_standard unix password manager_](https://www.passwordstore.org/). It looks at your password store by utilizing `pass` which handles the store to find the name of the password entry you requested. Once found it will decrypt it and open the login url referenced there in firefox.
 
 **Your story:** You have your GitHub credentials in your password store and the firefox addon "PassFF" installed (in firefox) and want to log in to Github to do good software coding stuff. And you're tired opening firefox and going to GitHub login page on your own. Glad that you installed the scripts here into your `PATH` and so you just do ALT+Space to open krunner and you type in `login github`. Magically but not surprisingly you will be prompted for your password store certificate password and if you enter it correctly then firefox will open with the GitHub login url in the address bar. If you now have `PassFF` firefox addon configured properly and only one login for this site then it should fill in the credentials on its own, hit the login button to log you finally in to do you a favor.
+
+**Your second story:** You're an admin of thousand and one night servers and sick remembering the ssh commands to access each as you please or need. But you are a good admin and therefore stored each ssh command in an pgp file on its own. Glad that you installed the scripts here into your `PATH` and so you just do ALT+Space to open krunner and you type in `login personalserver` and say krunner that it should open you a terminal so you can interact with it. Magically but not surprisingly you will be prompted for your password store certificate password and if you enter it correctly then it opens the terminal displaying the ssh command it is going to execute. Now SSH does it usual job you love it for. The same applies also to sftp connections.
 
 #### Syntax
 
@@ -27,6 +31,15 @@ The `login` command works hand in hand with the [_standard unix password manager
 `login <name>`
 
 Log in to a site: `login <name>` e.g. `login github` or `login GitHub`.
+
+Log in to a server (only if executed in the foreground): `login <name>` e.g. `login personalServer` or `login Personalserver`.
+Log in to a server and issue a single command: `login <name> <command to execute remotely (it is allowed that the command contains whitespaces but explicit quoting is not required)>` e.g. `login personalserver sudo apt update && sudo apt upgrade` or `login PersonalSERVER sudo apt update && sudo apt upgrade`.
+
+Log in to a remote file system (only if executed in the background): `login <name>` e.g. `login personalServer` or `login Personalserver`.
+
+You execute this script in the background if you call it in krunner without saying krunner to execute it in a terminal window. 
+
+You execute this script in the foreground if you call it in krunner with saying krunner to execute it in a terminal window or if you call it directly from inside the terminal.
 
 #### Internal logic
 
@@ -40,11 +53,25 @@ Log in to a site: `login <name>` e.g. `login github` or `login GitHub`.
 
 5. `pass` asks you for the password of the certificate to be able to decrypt the content of the password file found and selected.
 
-6. It filters the result so we have only the line with the login url.
+6. It determines the execution context:
+   
+   1. if executed in the background
+      
+      1. , a second argument provided to the `login` command and the `ssh` / `sftp` protocol being used in the `url` tag of the password file then it will initiate a **ssh connection** to the server to execute the command given as the second up until the last argument.
+      
+      2. the `ssh` / `sftp` protocol being used in the `url` tag of the password file then it will initiate a **sftp connection** to the server referenced in the url. Provided that the second argument will be left empty.
+      
+      3. and the `https` protocol being used in the `url` tag of the password file then it will open the url in firefox.
+   
+   2. if executed in the foreground
+      
+      1. a second argument provided to the `login` command and the `ssh` / `sftp` protocol being used in the `url` tag of the password file then it will initiate a **ssh connection** to the server to execute the command given as the second up until the last argument.
+      
+      2. the `ssh` / `sftp` protocol being used in the `url` tag of the password file then it will initiate a **ssh connection** to the server referenced in the url. Provided that the second argument will be left empty.
+      
+      3. and the `https` protocol being used in the `url` tag of the password file then it will open the url in firefox.
 
-7. It removes the string `url: ` (note the whitespace at the end) and passes the rest (the login url) to firefox.
-
-For it to work for e.g. being able to fetch the GitHub login url this script requires the password store to be at `~/.password-store` and decryption/enryption to be working. But also `pass` must display a graphical (GUI) prompt where you need to enter the password for your certificate you use for that password store.
+For it to work this script requires the password store to be at `~/.password-store` and decryption/enryption to be working. But also `pass` must display a graphical (GUI) prompt where you need to enter the password for your certificate you use for that password store.
 
 If you want to just type `login github` your password file must have the name (file extension inclusive) `GitHub.pgp` or `github.pgp` or `gitHub.pgp` . But `Github-private.pgp` is then not allowed. So here the thumb rule comes:
 
@@ -54,6 +81,8 @@ If you want to just type `login github` your password file must have the name (f
 
 Please note the case-insensitive search!
 
+##### GPG File containing url
+
 Your pgp file e.g. for GitHub should have the following format:
 
 ```gpg
@@ -62,9 +91,25 @@ username: your_email@your_domain
 url: https://github.com/login
 ```
 
-### remote
+##### GPG File containing ssh command
 
-`remote` and `login` share the same codebase.
+Your pgp file e.g. for your personal server should have at least the following format:
+
+```gpg
+<your very very secure machine cryptographically generated password>
+url: ssh://your_username@your_domain
+```
+
+```gpg
+<your very very secure machine cryptographically generated password>
+url: ssh://your_username@your_domain:2705
+```
+
+or similiar.
+
+### remote (deprecated)
+
+`remote` and `login` share the same codebase. Superseded by `login`.
 
 The `remote` command works hand in hand with the [_standard unix password manager_](https://www.passwordstore.org/). It looks at your password store by utilizing `pass` which handles the store to find the name of the password entry you requested. Once found it will decrypt it and ssh to a remote interactive terminal.
 
@@ -137,6 +182,7 @@ That commands requires you to say krunner it should execute it in the foreground
 Install a flatpak app: `flatinstall`
 
 #### Internal logic
+
 1. You execute `flatinstall`
 2. The script lists all content in your "Downloads" folder using `tree` and performs a case-insensitive search for a file with extension `.flatpakref`.
 3. When there is more than just one result it simply takes the first one.
@@ -144,4 +190,4 @@ Install a flatpak app: `flatinstall`
 5. It throws the ball of control over to flatpak
 6. Flatpak throws the ball of control back and this script does the necessary cleanup.
 
-For it to work it requires "~/Downloads" folder to exist and to be writeable. It also requires flatpak to be set up and the `.flatpakref` reference file you want to use for installation to be in the said folder because the script searches only there for it.
+For it to work it requires "~/Downloads" folder to exist and to be writeable. It also requires flatpak to be set up and the `.flatpakref` reference file you want to use for installation to be in the said folder because the script searches only there for it.   
