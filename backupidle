@@ -8,6 +8,7 @@ get_syncthing_apikey() {
 	syncthingapikey=$(cat /home/soren/.config/syncthing/config.xml | grep -i "apikey" | sed "s/^[[:space:]]*//")
 	syncthingapikey=${syncthingapikey//<apikey>/};
 	syncthingapikey=${syncthingapikey//<\/apikey>/};
+	echo $syncthingapikey
 }
 
 check_syncthing_status() {
@@ -16,10 +17,11 @@ check_syncthing_status() {
 	syncthing=${syncthing//,/};
 	syncthing=${syncthing//:/};
 	syncthing=${syncthing// /};
+	syncthing=${syncthing//needBytes/};
 }
 
 
-if [ -z "$syncthingruns" ];
+if ! [ -z "$syncthingruns" ];
 then
 	get_syncthing_apikey
 fi;
@@ -71,10 +73,11 @@ do
 	syncthing=0
 	
 	if ! [ -z "$syncthingruns" ]; # syncthing runs
+	then
 		
 		check_syncthing_status
 		
-		if (( $syncthing <= 0 )); # syncthing runs but is in idle (does not sync files/directories)
+		if (( $((syncthing)) <= 0 )); # syncthing runs but is in idle (does not sync files/directories)
 			then ranking=$(($ranking+1))
 		fi
 	fi
@@ -89,7 +92,9 @@ do
 	fi
 	
 	if (( $ranking >= 2 ));
-        then perform_action 1
+	then
+		perform_action 1
+        echo "idle"
         exit 1
 	fi
 	
