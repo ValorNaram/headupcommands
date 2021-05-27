@@ -26,29 +26,36 @@ fi;
 
 perform_action() {
 
-	if [ "$arg" = "" ];
+	if [[ "$arg" == "" ]];
 	then
 		exit $1
-	elif [ "$arg" = "off" ];
+	elif [[ "$arg" == "off" ]];
 	then
+		echo "powering off..."
 		systemctl poweroff
-	elif [ "$arg" = "poweroff" ];
+	elif [[ "$arg" == "poweroff" ]];
 	then
+		echo "powering off..."
 		systemctl poweroff
-	elif [ "$arg" = "0" ];
+	elif [[ "$arg" == "0" ]];
 	then
+		echo "powering off..."
 		systemctl poweroff
-	elif [ "$arg" = "restart" ];
+	elif [[ "$arg" == "restart" ]];
 	then
+		echo "rebooting..."
 		systemctl reboot
-	elif [ "$arg" = "reboot" ];
+	elif [[ "$arg" == "reboot" ]];
 	then
+		echo "rebooting..."
 		systemctl reboot
-	elif [ "$arg" = "boot" ];
+	elif [[ "$arg" == "boot" ]];
 	then
+		echo "rebooting..."
 		systemctl reboot
-	elif [ "$arg" = "1" ];
+	elif [[ "$arg" == "1" ]];
 	then
+		echo "rebooting..."
 		systemctl reboot
 	fi;
 	
