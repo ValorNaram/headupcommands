@@ -1,4 +1,5 @@
-#!/bin/bash 
+#!/bin/bash
+# FLAG: headupcommands
 
 arg="$1"
 syncthingruns=$(pstree | grep -i "syncthing")

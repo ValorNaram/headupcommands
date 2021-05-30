@@ -1,4 +1,5 @@
 #!/bin/bash
+# FLAG: headupcommands
 
 input="$1"
 arg=${@:2};

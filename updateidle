@@ -1,4 +1,5 @@
 #!/bin/bash 
+# FLAG: headupcommands
 
 arg="$1"
 

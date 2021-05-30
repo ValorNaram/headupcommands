@@ -1,4 +1,5 @@
 #!/bin/bash
+# FLAG: headupcommands
 
 cd ~/Downloads
 result=$(tree -f -i -Q | grep -i "flatpakref")

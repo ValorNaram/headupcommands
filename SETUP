@@ -1,0 +1,89 @@
+#!/bin/bash 
+
+bindir="/bin/headupcommands"
+arg="$1"
+
+isFlagged() {
+	local flag=`echo "$1" | head -2`
+	if ! [[ -z `echo "$flag" | grep "# FLAG: headupcommands"` ]];
+	then
+		true
+		return
+
+	else
+		false
+		return
+	fi;
+}
+
+isFlaggedFile() {
+	local flag=`cat $1`
+	isFlagged "$flag"
+}
+
+secureremove() {
+	if `test -f "$1"`; # file exists
+	then
+		if `isFlaggedFile "$1"`; # but is a flagged one so no danger to remove it
+		then
+			gio trash --force "$1" # moving to wastebin so no complete removal
+		else
+			false
+			return
+		fi;
+	fi;
+	true
+	return
+}
+
+securecopy() {
+	if ! `secureremove "$1/$2"`;
+	then
+		false
+		return
+	fi;
+	
+	cp "$2" "$1/$2"
+}
+
+copy2bin() {
+	securecopy "$bindir" $1
+}
+
+
+if [[ "$arg" == "install" ]];
+then
+	echo "installing..."
+	echo "  creating 'headupcommands' folder in bin (executables folder)"
+	mkdir "$bindir"
+	echo "  registering in profile..."
+	cp "headupcommands.sh" "/etc/profile.d/headupcommands.sh"
+	chmod a+x "/etc/profile.d/headupcommands.sh"
+	echo "  copying headupcommands to the 'headupcommands' folder in bin (executables folder)"
+	for i in `dir`
+	do
+		if `isFlaggedFile $i`;
+		then
+			echo "    processing headup command '$i'..."
+			copy2bin $i
+		fi
+	done
+elif [[ "$arg" == "uninstall" ]];
+then
+	echo "uninstalling..."
+	echo "  removing 'headupcommands' folder and all its content (the headupcommands scripts) from bin (executables folder)..."
+	gio trash --force "$bindir"
+	echo "  unregistering from profile... (changes will apply after reboot or profile reload)"
+	gio trash --force "/etc/profile.d/headupcommands.sh" 
+	echo ""
+	echo "All folders and files that were removed from the system are in your Wastebin (if existent) so you are as self-confident as possible."
+fi;
+
+echo ""
+echo "------------------------------------------------------"
+echo -e "\033[1;32mKeep in mind tech is here to help you getting things done but is not here to replace your mind!\033[0;m"
+echo ""
+echo -e "This script wishes you the best, be \033[0;32mself-confident\033[0;m and \033[0;32menabled\033[0;m, be \033[0;32mtech-savy\033[1;m!"
+echo -e "There are too many people in the world who are \033[0;31mslaves\033[0;m of the tech they own. Be special, be different, be master of tech and don't let tech master you!"
+echo ""
+echo -e "\033[1;32mTech is here to help you getting things done but is not here to replace your mind!\033[0;m"
