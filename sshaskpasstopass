@@ -1,0 +1,24 @@
+#!/bin/bash
+# FLAG: headupcommands
+
+# this script approves fingerprints automatically and handles password authentication. This methodology is depending on your overall setup ranging from a bit unsecure to highly unsecure and therefore is discouraged in general
+
+arg=$1
+
+# echo "$arg">"test.txt"
+
+password=`echo $arg | grep "password"`
+sayyes=`echo $arg | grep "yes"`
+
+if ! [[ -z "$password" ]];
+then
+	content=$(pass show "$password_file")
+	passwd=$(echo "$content" | head -1)
+	echo $passwd
+fi;
+
+if ! [[ -z "$sayyes" ]];
+then
+	echo "yes"
+fi;
+

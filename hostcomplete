@@ -1,0 +1,82 @@
+#!/bin/bash
+# FLAG: headupcommands
+
+arg=$1
+result=()
+
+doWeNeedToExit() {
+	local response=`arp | grep -i "$arg"`
+	if (( $1 == 0 ))
+	then
+		result=$response
+	fi;
+}
+
+lookupWithnmap() {
+	local interface=`ip address | grep -i "state UP"`
+	interface=($(echo $interface | tr " " "\n"))
+	interface=${interface[1]}
+	interface=${interface//\:/}
+	regexp="inet (.+?) brd (.+?) $interface"
+	interface=`ip address | grep -iE "$regexp"`
+	if [[ $interface =~ $regexp ]];
+	then
+		interface=()
+		interface=${BASH_REMATCH[1]}
+		interface=`nmap -sL $interface | grep -i "$arg"`
+		set -f
+		IFS=$'\t\n'
+		regexp="scan report for (.+?) \("
+		for i in ${interface[@]}
+		do
+			if [[ $i =~ $regexp ]];
+			then
+				local elem=${BASH_REMATCH[1]}
+				if ! [[ -z "$elem" ]];
+				then
+					result+=("$elem")
+				fi;
+			fi;
+		done;
+	fi;
+	
+	return 0
+}
+
+lookupWitharp() {
+	local res=`arp | grep -i "$arg"`
+	set -f
+	old_ifs=$IFS
+	IFS=$'\t\n'
+	for i in ${res[@]}
+	do
+		IFS=$' '
+		for u in ${i[@]}
+		do
+			if ! [[ -z "$u" ]];
+			then
+				result+=("$u")
+			fi
+			break
+		done
+		IFS=$'\t\n'
+	done
+}
+
+which arp >/dev/null
+code=$?
+if (( $code == 0 )) && [[ -z "$result" ]]
+then
+	lookupWitharp
+	#echo "hi"
+fi;
+
+which nmap >/dev/null
+code=$?
+if (( $code == 0 )) && [[ -z "$result" ]]
+then
+	#echo "blib"
+	lookupWithnmap
+fi;
+
+echo ${result[*]}

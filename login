@@ -4,7 +4,23 @@
 input="$1"
 arg=${@:2};
 executionmode=`ps -o stat= -p $$`
-echo $executionmode
+
+cd ~/.password-store
+result=$(tree -f -i -Q | grep -i "$input")
+result=$(echo "$result" | head -1)
+result=${result[0]}
+result=${result//.gpg/};
+result=${result//"./"/};
+result=${result//\"/};
+export password_file=$result
+content=$(pass show "$result")
+passwd=$(echo "$content" | head -1)
+login=$(echo "$content" | grep -i "login:") 
+url=$(echo "$content" | grep -i "url:");
+url=${url//url: /};
+url_sftp=$(echo "$url" | grep -i "sftp:");
+url_ssh=$(echo "$url" | grep -i "ssh:");
+url_https=$(echo "$url" | grep -i "https:");
 
 open_nothing() {
 	echo "Not opening '$1' because this is not supported!"
@@ -20,41 +36,63 @@ open_sftp() {
     xdg-open "$1"
 }
 
+ssh_serversupportsauthpassword() {
+	# code taken from https://serverfault.com/questions/938149/how-to-test-if-ssh-server-allows-passwords
+	local res=`ssh -v -n -o Batchmode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile "$1" 2>&1 | grep "Authentications that can continue" | head -1`
+	res=`echo "$res" | grep "password"`
+	echo "$res"
+	if ! [[ -z "$res" ]]; # password authentication allowed
+	then
+		true
+		return
+	fi
+	false
+	return
+}
+
 open_ssh() {
 	echo "Remote server: $1"
+	#local old_IFS="$IFS"
+	#IFS=$''
+	local host=`echo "$1"`
+	
+	echo "checking authentication methods..."
+# 	echo $host
+	local regexp="(.*?)\/$"
+	if [[ $host =~ $regexp ]]; # removing '/' if it is the last char
+	then
+		host=${BASH_REMATCH[1]}
+# 		echo $host
+	fi;
+# 	echo $host
+	
+	if [[ `ssh_serversupportsauthpassword $host` ]]; # password authentication allowed
+	then
+		echo -e "\033[0;31mThe server allows password authentication. Password authentication is considered bad practice since mainstream loves to use easy-to-guess passwords. Your administrator should consider disabling password authentication.\033[0;m"
+		export SSH_ASKPASS="./sshaskpasstopass"
+		export DISPLAY="foo"
+		export SSH_ASKPASS_REQUIRE="force"
+	fi;
 	
 	if [ -z "$arg" ];
 	then
 		echo "-------------------------------------------------------"
-		ssh $1
+		ssh $host
 	else
 		echo "Remote command: $arg"
 		echo "-------------------------------------------------------"
 	
-		ssh $1 "$arg"
+		ssh $host "$arg"
 		exitcode="$?"
 		echo 
-		echo "Remote command exited with code '$exitcode'."
+		echo "Remote command exited with code '$exitcode'"
+		exit $exitcode
 	fi;
 }
 
-cd ~/.password-store
-result=$(tree -f -i -Q | grep -i "$input")
-result=$(echo "$result" | head -1)
-result=${result[0]}
-result=${result//.gpg/};
-result=${result//"./"/};
-result=${result//\"/};
-content=$(pass show "$result")
-url=$(echo "$content" | grep -i "url");
-url=${url//url: /};
-url_sftp=$(echo "$url" | grep -i "sftp:");
-url_ssh=$(echo "$url" | grep -i "ssh:");
-url_https=$(echo "$url" | grep -i "https:");
-
 if [[ "$executionmode" == "S" ]]; # script has been started in the background
 then
-    
+    echo "background execution mode"
 	if ! [ -z "$url_sftp" ];
 	then
 		open_sftp "$url_sftp"
@@ -76,7 +114,7 @@ then
     exit 0
     
 else # script has been started in the foreground
-    
+	echo "foreground execution mode"
     if ! [ -z "$url_ssh" ];
 	then
 		open_ssh "$url_ssh"
