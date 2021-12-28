@@ -12,6 +12,7 @@ result=${result[0]}
 result=${result//.gpg/};
 result=${result//"./"/};
 result=${result//\"/};
+export password_name=${result#*/}
 export password_file=$result
 content=$(pass show "$result")
 passwd=$(echo "$content" | head -1)
@@ -25,7 +26,7 @@ url_https=$(echo "$url" | grep -i "https:");
 open_nothing() {
 	echo "Not opening '$1' because this is not supported!"
 }
-
+ 
 open_firefox() {
 	echo "opening url '$url' in firefox"
     
@@ -33,7 +34,31 @@ open_firefox() {
 }
 
 open_sftp() {
-    xdg-open "$1"
+	if ! [ -z $(which sshfs) ]
+	then
+		local connstring=${1//sftp:/};
+		connstring=${connstring//\//};
+		echo "Connecting to remote file system using sshfs..."
+		# see https://en.wikibooks.org/wiki/OpenSSH/Cookbook/File_Transfer_with_SFTP#sshfs(1)_-_SFTP_File_Transfer_Via_Local_Folders
+		test -d ~/headupcommands_remotedirs || mkdir --mode 700 ~/headupcommands_remotedirs
+		test -d ~/headupcommands_remotedirs/${password_name} || mkdir --mode 700 ~/headupcommands_remotedirs/${password_name}
+		echo $connstring
+		#fusermount -u ~/headupcommands_remotedirs/${password_name}
+		sshfs ${connstring}:/ ~/headupcommands_remotedirs/${password_name} -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3
+		xdg-open ~/headupcommands_remotedirs/${password_name}
+	elif ! [ -z $(which gio) ]
+	then
+		echo "Connecting to remote file system using gio..."
+		gio mount -u "$1"
+		gio mount "$1"
+	elif ! [ -z $(which gvfs-mount) ]
+	then
+		echo "Connecting to remote file system using gvfs-mount..."
+		gvfs-mount "$1"
+	else
+		echo "Cannot find appropriate method myself, handling over to xdg-open..."
+		xdg-open "$1"
+	fi
 }
 
 ssh_serversupportsauthpassword() {
@@ -69,9 +94,10 @@ open_ssh() {
 	if [[ `ssh_serversupportsauthpassword $host` ]]; # password authentication allowed
 	then
 		echo -e "\033[0;31mThe server allows password authentication. Password authentication is considered bad practice since mainstream loves to use easy-to-guess passwords. Your administrator should consider disabling password authentication.\033[0;m"
-		export SSH_ASKPASS="./sshaskpasstopass"
+		export SSH_ASKPASS="/home/soren/headupcommands/sshaskpasstopass"
 		export DISPLAY="foo"
 		export SSH_ASKPASS_REQUIRE="force"
+		echo -e "\033[1;31mThis script now uses SSH password authentication but using this method is not as secure as using keys!\033[0;m"
 	fi;
 	
 	if [ -z "$arg" ];
@@ -90,6 +116,7 @@ open_ssh() {
 	fi;
 }
 
+executionmode=S
 if [[ "$executionmode" == "S" ]]; # script has been started in the background
 then
     echo "background execution mode"
