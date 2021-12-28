@@ -60,9 +60,10 @@ You are in the study hall and your professor just uploaded their slides and you 
 
    `/home/$USER/thispointer --> /home/$USER/Videos/horror/Sally\ Stich`
 
-## How to use
+## How to install
 
 1. Download this [script](../kThisp.py) (if not done already) and save it to a location you find appropriate.
+1. Mark it as executable
 2. Add it to your autostart settings to make it start when you log into your user account.
 3. Restart your computer for changes to become active **or even better** start the script yourself.
 4. Tell your programs to save or export files to `Home --> thispointer`. You may need to enter `/home/<replace this with your username>/thispointer` manually. Please replace the text `<replace this with your username>` with your username which you get when you execute `echo $USER` in a terminal/konsole.
