@@ -1,0 +1,51 @@
+#!/bin/bash
+# FLAG: headupcommands
+
+name="$1"
+
+cd ~/.password-store
+
+get_clipboard() {
+	if ! [ -z $(which xclip) ];
+	then
+		echo "$(xclip -o)"
+		return
+	elif ! [ -z $(which xsel) ];
+	then
+		echo "$(xsel --output)"
+		return
+	elif ! [ -z $(which pbcopy) ];
+	then
+		echo "$(pbcopy -o)"
+		return
+	elif [ -f "/dev/clipboard" ];
+	then
+		cat "/dev/clipboard"
+		return
+	else
+		echo "no supported way of reading the clipboard"
+		return
+	fi
+}
+
+send_notification() {
+	if ! [ -z $(which notify-send) ];
+	then
+		notify-send "$1"
+	elif ! [ -z $(which kdialog) ];
+	then
+		kdialog --passivepopup "$1" 5
+	elif ! [ -z $(which zenity) ];
+	then
+		zenity --notification --text "$1" 
+	fi
+}
+
+create_pass_entry() {
+	content="
+url: $1"
+echo "$content" | pass insert --multiline shortcuts/$name
+}
+
+create_pass_entry "`get_clipboard`"
+send_notification "Shortcut '$name' created under 'shortcuts' in password store"
