@@ -68,6 +68,8 @@ then
 			copy2bin $i
 		fi
 	done
+	echo "Installing python3 packages..."
+	pip3 install glib
 elif [[ "$arg" == "uninstall" ]];
 then
 	echo "uninstalling..."
