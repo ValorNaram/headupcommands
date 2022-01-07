@@ -1,0 +1,104 @@
+#!/bin/bash
+# FLAG: headupcommands
+
+arg="$1"
+syncthingruns=$(pstree | grep -i "syncthing")
+
+get_syncthing_apikey() {
+	syncthingconfig=$(syncthing -paths | grep "config.xml" | sed "s/^[[:space:]]*//")
+	syncthingapikey=$(cat /home/soren/.config/syncthing/config.xml | grep -i "apikey" | sed "s/^[[:space:]]*//")
+	syncthingapikey=${syncthingapikey//<apikey>/};
+	syncthingapikey=${syncthingapikey//<\/apikey>/};
+	echo $syncthingapikey
+}
+
+check_syncthing_status() {
+	syncthing=$(curl -H "X-API-Key: $syncthingapikey" -v --stderr - localhost:8384/rest/db/completion | grep -i "needBytes" | sed "s/^[[:space:]]*//")
+	syncthing=${syncthing//\"/};
+	syncthing=${syncthing//,/};
+	syncthing=${syncthing//:/};
+	syncthing=${syncthing// /};
+	syncthing=${syncthing//needBytes/};
+}
+
+
+if ! [ -z "$syncthingruns" ];
+then
+	get_syncthing_apikey
+fi;
+
+perform_action() {
+
+	if [[ "$arg" == "" ]];
+	then
+		exit $1
+	elif [[ "$arg" == "off" ]];
+	then
+		echo "powering off..."
+		systemctl poweroff
+	elif [[ "$arg" == "poweroff" ]];
+	then
+		echo "powering off..."
+		systemctl poweroff
+	elif [[ "$arg" == "0" ]];
+	then
+		echo "powering off..."
+		systemctl poweroff
+	elif [[ "$arg" == "restart" ]];
+	then
+		echo "rebooting..."
+		systemctl reboot
+	elif [[ "$arg" == "reboot" ]];
+	then
+		echo "rebooting..."
+		systemctl reboot
+	elif [[ "$arg" == "boot" ]];
+	then
+		echo "rebooting..."
+		systemctl reboot
+	elif [[ "$arg" == "1" ]];
+	then
+		echo "rebooting..."
+		systemctl reboot
+	fi;
+	
+	exit $1
+
+}
+
+while [ true ]
+do
+	ranking=0
+	rsync=$(pgrep rsync)
+	syncthingruns=$(pstree | grep -i "syncthing")
+	syncthing=0
+	
+	if ! [ -z "$syncthingruns" ]; # syncthing runs
+	then
+		
+		check_syncthing_status
+		
+		if (( $((syncthing)) <= 0 )); # syncthing runs but is in idle (does not sync files/directories)
+			then ranking=$(($ranking+1))
+		fi
+	fi
+	
+	if [ -z "$syncthingruns" ]; # syncthing does not run or is not installed at all
+		 then ranking=$(($ranking+1))
+	fi
+	
+	
+	if [ -z "$rsync" ];
+        then ranking=$(($ranking+1))
+	fi
+	
+	if (( $ranking >= 2 ));
+	then
+		perform_action 1
+        echo "idle"
+        exit 1
+	fi
+	
+	sleep 10
+	
+done

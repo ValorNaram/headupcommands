@@ -48,8 +48,8 @@ securecopy() {
 
 copy2bin() {
 	securecopy "$bindir" $1
+	chmod a+x "$bindir/$1"
 }
-
 
 if [[ "$arg" == "install" ]];
 then
@@ -60,6 +60,7 @@ then
 	cp "headupcommands.sh" "/etc/profile.d/headupcommands.sh"
 	chmod a+x "/etc/profile.d/headupcommands.sh"
 	echo "  copying headupcommands to the 'headupcommands' folder in bin (executables folder)"
+	cd src
 	for i in `dir`
 	do
 		if `isFlaggedFile $i`;
