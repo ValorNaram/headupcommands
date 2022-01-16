@@ -12,15 +12,24 @@ loop = GLib.MainLoop()
 
 def signal_handler(*args, **kwargs):
 	global curDir, number
+	
 	newDir = args[0].replace("file:","")
+	
+	# if statement explained:
+	#   newDir != "" - newDir must not be an empty string (critical part)
+	#   newDir != curDir - must not be equal to prevent unnecessary operations
+	#   newDir != thispointer - must not be equal with the path of thispointer to prevent strange behaviours like error throwing or uncaught but dangerous errors (critical part)
+	#   newDir.endswith("thispointer") - same as previous (critical part)
 	if newDir != "" and newDir != curDir and newDir != thispointer and not newDir.endswith("thispointer"):
 		curDir = newDir
-		if os.path.exists(thispointer) or os.path.exists(os.path.realpath(thispointer)): # detect existing (dangling) symbolic link
-			os.remove(thispointer)
+		# detect existing link         or     detect existing dangling symbolic link
+		if os.path.exists(thispointer) or not os.path.exists(os.path.realpath(thispointer)) and os.path.islink(thispointer):
+			os.remove(thispointer) # remove existing (dangling) symbolic link
 
-		print("User jumped to ", newDir)
+		print("Loop {}: User jumped to {}".format(str(number), newDir))
 		os.symlink(curDir, thispointer, target_is_directory=True)
-		number += 1
+	
+	number += 1
 	print("----------------")
 	
 bus = dbus.SessionBus()
