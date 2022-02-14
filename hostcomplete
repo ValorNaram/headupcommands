@@ -4,14 +4,6 @@
 arg=$1
 result=()
 
-doWeNeedToExit() {
-	local response=`arp | grep -i "$arg"`
-	if (( $1 == 0 ))
-	then
-		result=$response
-	fi;
-}
-
 lookupWithnmap() {
 	local interface=`ip address | grep -i "state UP"`
 	interface=($(echo $interface | tr " " "\n"))
@@ -63,17 +55,11 @@ lookupWitharp() {
 	done
 }
 
-which arp >/dev/null
-code=$?
-if (( $code == 0 )) && [[ -z "$result" ]]
+if ! [ -z $(which arp) ];
 then
 	lookupWitharp
 	#echo "hi"
-fi;
-
-which nmap >/dev/null
-code=$?
-if (( $code == 0 )) && [[ -z "$result" ]]
+elif ! [ -z $(which nmap) ];
 then
 	#echo "blib"
 	lookupWithnmap

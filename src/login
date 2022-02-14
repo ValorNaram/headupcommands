@@ -16,7 +16,16 @@ export password_name=${result#*/}
 export password_file=$result
 content=$(pass show "$result")
 passwd=$(echo "$content" | head -1)
-login=$(echo "$content" | grep -i "login:") 
+
+if [ "$arg" = "--password-only" ];
+then
+	echo $passwd
+	exit 0
+fi
+
+login=$(echo "$content" | grep -i "login:")
+portforward=$(echo "$content" | grep -i "portforward:")
+portforward=( $portforward )
 url=$(echo "$content" | grep -i "url:");
 url=${url//url: /};
 url_sftp=$(echo "$url" | grep -i "sftp:");
@@ -28,6 +37,7 @@ open_nothing() {
 }
  
 open_firefox() {
+	# I use an anti-pattern to just support firefox as companies play their own part making tech harder and less user friendly by limiting the ability of humanity in tech. I just want to show that I can play that game too.
 	echo "opening url '$url' in firefox"
     
 	firefox $url
@@ -80,6 +90,7 @@ open_ssh() {
 	#local old_IFS="$IFS"
 	#IFS=$''
 	local host=`echo "$1"`
+	local options=""
 	
 	echo "checking authentication methods..."
 # 	echo $host
@@ -90,27 +101,43 @@ open_ssh() {
 # 		echo $host
 	fi;
 # 	echo $host
+
+	if ! [ -z "$portforward" ];
+	then
+		for port in "${portforward[@]}"
+		do
+			options="$options -L $port"
+		done
+	fi
 	
 	if [[ `ssh_serversupportsauthpassword $host` ]]; # password authentication allowed
 	then
 		echo -e "\033[0;31mThe server allows password authentication. Password authentication is considered bad practice since mainstream loves to use easy-to-guess passwords. Your administrator should consider disabling password authentication.\033[0;m"
-		export SSH_ASKPASS="/home/soren/headupcommands/sshaskpasstopass"
+		export SSH_ASKPASS="/bin/headupcommands/sshaskpasstopass"
 		export DISPLAY="foo"
 		export SSH_ASKPASS_REQUIRE="force"
 		echo -e "\033[1;31mThis script now uses SSH password authentication but using this method is not as secure as using keys!\033[0;m"
 	fi;
 	
+	if ! [ -z "$portforward" ];
+		then
+			for port in "${portforward[@]}"
+			do
+				echo "Port forwarding $port"
+			done
+		fi
 	if [ -z "$arg" ];
 	then
-		echo "-------------------------------------------------------"
-		ssh $host
+		echo "----------------------- [START] SSH REMOTE SESSION ---------------------------------------"
+		ssh $host $options #"execute=\`cat /etc/passwd | grep \$USER\` ; execute=\${execute//\" \"/b} ; execute=\${execute//:/ } ; execute=( \$execute ) ; \${execute[6]} --login"
+		echo "----------------------- [CLOSE] SSH REMOTE SESSION ---------------------------------------"
 	else
 		echo "Remote command: $arg"
-		echo "-------------------------------------------------------"
+		echo "---------------------------- [START] REMOTE COMMAND EXECUTION ----------------------------"
 	
-		ssh $host "$arg"
+		ssh $host $options "$arg"
 		exitcode="$?"
-		echo 
+		echo "---------------------------- [CLOSE] REMOTE COMMAND EXECUTION ----------------------------"
 		echo "Remote command exited with code '$exitcode'"
 		exit $exitcode
 	fi;
@@ -118,40 +145,54 @@ open_ssh() {
 
 if [[ "$executionmode" == "S" ]]; # script has been started in the background
 then
+	# mother case (the condition): This script has **no** terminal attached to it (running in background)
     echo "background execution mode"
-	if ! [ -z "$url_sftp" ];
+	if ! [ -z "$url_sftp" ] && ! [ -z "$arg" ]; 
 	then
-		open_sftp "$url_sftp"
-	elif ! [ -z "$url_sftp" ] && ! [ -z "$arg" ]; # and no second up to the last argument given
-	then
+		# in case the url in the gpg file starts is a sftp one but arguments has been provided to the login command to be passed over to ssh then convert to ssh url and invoke SSH REMOTE COMMAND EXECUTION
 		url_sftp=${url_sftp//sftp:/ssh:};
 		open_ssh "$url_sftp"
+	elif ! [ -z "$url_sftp" ];
+	then
+		# in case the url in the gpg file starts is a sftp one and leave as it is and invoke SSH SECURE FILE TRANSFER
+		open_sftp "$url_sftp"
 	elif ! [ -z "$url_ssh" ];
 	then
+		# in case the url in the gpg file starts is a ssh one, then convert to a sftp one and invoke SSH SECURE FILE TRANSFER
+		# ATTENTION: Please remind yourself about the mother case (the condition) for this block
 		url_ssh=${url_ssh//ssh:/sftp:};
 		open_sftp "$url_ssh"
 	elif ! [ -z "$url_https" ];
 	then
+		# in case the url in the gpg file is a https one then open it in firefox
 		open_firefox "$url_https"
 	else
+		# in all other cases
 		open_nothing
 	fi
 	echo "You can close this window"
     exit 0
     
 else # script has been started in the foreground
+	# mother case (the condition): This script has terminal attached to it (running in foreground as you can see the next line printed somewhere on your tty screen)
 	echo "foreground execution mode"
     if ! [ -z "$url_ssh" ];
 	then
+		# in case the url in the gpg file is a ssh one then invoke a SSH REMOTE SESSION or SSH REMOTE COMMAND EXECUTION
 		open_ssh "$url_ssh"
 	elif ! [ -z "$url_sftp" ];
 	then
+		# in case the url in the gpg file is a sftp one then
+		# 1. convert to a ssh one
+		# 2. invoke a SSH REMOTE SESSION or SSH REMOTE COMMAND EXECUTION
 		url_sftp=${url_sftp//sftp:/ssh:};
 		open_ssh "$url_sftp"
 	elif ! [ -z "$url_https" ];
 	then
+		# in case the url in the gpg file is a https one then open it in firefox
 		open_firefox "$url_https"
 	else
+		# in all other cases
 		open_nothing
 	fi
 	echo "You can close this window"

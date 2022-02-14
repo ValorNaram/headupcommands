@@ -45,6 +45,10 @@ You execute this script in the background if you call it in krunner without sayi
 
 You execute this script in the foreground if you call it in krunner and saying krunner to execute it in a terminal window or if you call it directly from inside the terminal.
 
+## only retrieve password
+
+`login <name> --password-only` prints out the password to stdout only. No connection to server will be tried. For example will `login personalServer --password-only` print out the password of `personalServer` only.
+
 ## Internal logic
 
 1. You use the syntax `login <name>` e.g. `login GitHub` or `login github` as long as you have a gpg file named `GitHub` or `github` or even `Github`.
@@ -110,3 +114,23 @@ url: ssh://your_username@your_domain:2705
 ```
 
 or similiar.
+
+### GPG File containing `portforward:`
+
+This allows `login` to port forward using the `-L` argument switch
+
+```gpg
+<your very very secure machine cryptographically generated password>
+url: ssh://your_username@your_domain:2705
+portforward: 8085:127.0.0.1:80
+```
+
+or multiple `portforwards`‘s to use `-L` ssh argument switch multiple times to open multiple port forwards
+
+```gpg
+<your very very secure machine cryptographically generated password>
+url: ssh://your_username@your_domain:2705
+portforward: 8085:127.0.0.1:80
+portforward: 8080:127.0.0.1:8476
+```
+

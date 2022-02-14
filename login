@@ -116,7 +116,6 @@ open_ssh() {
 	fi;
 }
 
-executionmode=S
 if [[ "$executionmode" == "S" ]]; # script has been started in the background
 then
     echo "background execution mode"
