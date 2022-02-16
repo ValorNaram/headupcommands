@@ -5,20 +5,22 @@
 
 arg=$1
 
-#echo "$arg" > "./test.txt"
+password=`echo "$arg" | grep "password"`
+sayyes=`echo "$arg" | grep "yes"`
 
-password=`echo $arg | grep "password"`
-sayyes=`echo $arg | grep "yes"`
+#echo "$arg $password $sayyes">"./test.txt"
 
-if ! [[ -z "$password" ]];
+if ! [ -z "$password" ];
 then
 	content=$(pass show "$password_file")
 	passwd=$(echo "$content" | head -1)
 	echo $passwd
+	exit 0
 fi;
 
-if ! [[ -z "$sayyes" ]];
+if ! [ -z "$sayyes" ];
 then
 	echo "yes"
+	exit 0
 fi;
 

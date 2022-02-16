@@ -17,7 +17,7 @@ export password_file=$result
 content=$(pass show "$result")
 passwd=$(echo "$content" | head -1)
 
-if [ "$arg" = "--password-only" ];
+if [ "$arg" = "--password-only" ] || [ "$arg" = "--only-password" ];
 then
 	echo $passwd
 	exit 0
@@ -25,6 +25,7 @@ fi
 
 login=$(echo "$content" | grep -i "login:")
 portforward=$(echo "$content" | grep -i "portforward:")
+portforward=${portforward//"portforward:"/}
 portforward=( $portforward )
 url=$(echo "$content" | grep -i "url:");
 url=${url//url: /};
@@ -71,18 +72,18 @@ open_sftp() {
 	fi
 }
 
-ssh_serversupportsauthpassword() {
+sshserver_authsupport() {
 	# code taken from https://serverfault.com/questions/938149/how-to-test-if-ssh-server-allows-passwords
-	local res=`ssh -v -n -o Batchmode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile "$1" 2>&1 | grep "Authentications that can continue" | head -1`
-	res=`echo "$res" | grep "password"`
-	echo "$res"
-	if ! [[ -z "$res" ]]; # password authentication allowed
-	then
-		true
-		return
-	fi
-	false
+	authmethods=`ssh -v -n -o Batchmode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile "$host" 2>&1 | grep -i "Authentications that can continue" | head -1`
+	#res=`echo "$res" | grep "$2"`
 	return
+	#if ! [[ -z "$res" ]]; # password authentication allowed
+	#then
+#		true
+#		return
+#	fi
+#	false
+#	return
 }
 
 open_ssh() {
@@ -92,7 +93,6 @@ open_ssh() {
 	local host=`echo "$1"`
 	local options=""
 	
-	echo "checking authentication methods..."
 # 	echo $host
 	local regexp="(.*?)\/$"
 	if [[ $host =~ $regexp ]]; # removing '/' if it is the last char
@@ -102,6 +102,23 @@ open_ssh() {
 	fi;
 # 	echo $host
 
+	echo "checking authentication methods..."
+	sshserver_authsupport
+	
+	if ! [[ -z `echo "$authmethods" | grep -i "password"` ]]; # password authentication allowed
+	then
+		echo -e "\033[0;31mThe server allows password authentication. Password authentication is considered old-fashioned and bad practice since many users love using insecure ones. Your administrator should consider to disable password authentication to encourage using more secure and modern authentication methods instead.\033[0;m"
+		if [ -z `ssh -V 2>&1 | grep 8.4` ];
+		then
+			echo -e "\033[1;34mThis script recommends running at least version 8.4 of OpenSSH for all features this script uses!\033[0;m"
+		else
+			export SSH_ASKPASS="/bin/headupcommands/sshaskpasstopass"
+			export DISPLAY="foo"
+			export SSH_ASKPASS_REQUIRE="force"
+			echo -e "\033[1;34mThis script now uses SSH password authentication but using this method is not as secure as using keys!\033[0;m"
+		fi;
+	fi;
+
 	if ! [ -z "$portforward" ];
 	then
 		for port in "${portforward[@]}"
@@ -109,15 +126,6 @@ open_ssh() {
 			options="$options -L $port"
 		done
 	fi
-	
-	if [[ `ssh_serversupportsauthpassword $host` ]]; # password authentication allowed
-	then
-		echo -e "\033[0;31mThe server allows password authentication. Password authentication is considered bad practice since mainstream loves to use easy-to-guess passwords. Your administrator should consider disabling password authentication.\033[0;m"
-		export SSH_ASKPASS="/bin/headupcommands/sshaskpasstopass"
-		export DISPLAY="foo"
-		export SSH_ASKPASS_REQUIRE="force"
-		echo -e "\033[1;31mThis script now uses SSH password authentication but using this method is not as secure as using keys!\033[0;m"
-	fi;
 	
 	if ! [ -z "$portforward" ];
 		then
