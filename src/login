@@ -137,7 +137,30 @@ open_ssh() {
 	if [ -z "$arg" ];
 	then
 		echo "----------------------- [START] SSH REMOTE SESSION ---------------------------------------"
-		ssh $host $options #"execute=\`cat /etc/passwd | grep \$USER\` ; execute=\${execute//\" \"/b} ; execute=\${execute//:/ } ; execute=( \$execute ) ; \${execute[6]} --login"
+		# Thanks to https://askubuntu.com/questions/698957/ssh-into-a-machine-and-then-launch-an-interactive-command-line-program
+		ssh -t $host $options "
+		execute=\`cat /etc/passwd | grep \$USER\` ; 
+		execute=\${execute//\" \"/b} ;
+		execute=\${execute//:/ } ;
+		execute=( \$execute ) ;
+		user=\${execute[4]} ;
+		user=\${user//,/ } ;
+		user=( \$user ) ;
+		echo -e \"\\033[0;33msetting up password-less sudo ...\\033[0;m\" ;
+		export SUDO_ASKPASS=~/secrets ;
+		export sudoexecutablepath=\$(which sudo) ;
+		echo -e \"#!/bin/bash\necho \\\"$passwd\\\"\" >~/secrets ;
+		chmod o-rw ~/secrets ;
+		chmod u+x ~/secrets ;
+		echo -e \"\\033[0;33mchanging the way how sudo executes ...\\033[0;m\"
+		echo -e \"#!/bin/bash\n\n. ~/.bashrc\nalias sudo=\\\"\$sudoexecutablepath -A\\\"\" >~/headupcommands_init ;
+		echo -e \"\\033[0;34mTerminal ready!\\033[0;m\" ;
+		echo -e \"\\033[1;36mWelcome \${user[0]}\\033[0;m\" ;
+		\${execute[6]} --init-file ~/headupcommands_init ;
+		echo -e \"\\033[0;33mremoving secrets...\\033[0;m\" ;
+		rm ~/secrets ;
+		rm ~/headupcommands_init ;
+		"
 		echo "----------------------- [CLOSE] SSH REMOTE SESSION ---------------------------------------"
 	else
 		echo "Remote command: $arg"
