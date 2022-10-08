@@ -44,6 +44,7 @@ securecopy() {
 	fi;
 	
 	cp "$2" "$1/$2"
+	chmod a+rx "$1/$2"
 }
 
 copy2bin() {
