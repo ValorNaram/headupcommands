@@ -134,3 +134,7 @@ portforward: 8085:127.0.0.1:80
 portforward: 8080:127.0.0.1:8476
 ```
 
+### SSH into the console from the mounted SFTP directory
+
+**Story:** You open _krunner_ and type in `login myserver`. This way the script creates a SFTP connection. You are navigating to `srv/projects` and open a local terminal in that working directory `srv/projects`. Inside the terminal you type just `login` and the login script connects you to the server via SSH and you are in the same directory as your file browser is in currently.
+

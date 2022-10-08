@@ -5,6 +5,26 @@ input="$1"
 arg=${@:2};
 executionmode=`ps -o stat= -p $$`
 
+checkIfInMountedSFTPDirectoryMountedByThisScript() {
+	local res=`echo $PWD | grep "$HOME/headupcommands_remotedirs/$password_name"`
+	
+	if [ -n "$res" ]; then # it means this script has been called inside the mounted dir. The user wants to open an SSH connection to the server they connected to using SFTP. And the user wants the current working directory of the SSH connection to be the same as the one of the SFTP connection
+		echo 0 # means true
+		return
+	fi
+	echo 1 # means false
+	return
+}
+
+if [ -z "$input" ] && [ `checkIfInMountedSFTPDirectoryMountedByThisScript` ]; then
+	input=${PWD/"$HOME/headupcommands_remotedirs/"/""}
+	input=${input//"/"/" "}
+	input=( $input )
+	input="${input[0]}"
+fi
+
+oldpwd="$PWD"
+
 cd ~/.password-store
 result=$(tree -f -i -Q | grep -i "$input")
 result=$(echo "$result" | head -1)
@@ -12,10 +32,14 @@ result=${result[0]}
 result=${result//.gpg/};
 result=${result//"./"/};
 result=${result//\"/};
-export password_name=${result#*/}
 export password_file=$result
-content=$(pass show "$result")
+result=${result//"/"/" "};
+result=( $result )
+result=${result[-1]}
+export password_name=${result#*/}
+content=$(pass show "$password_file")
 passwd=$(echo "$content" | head -1)
+cd $oldpwd
 
 if [ "$arg" = "--password-only" ] || [ "$arg" = "--only-password" ];
 then
@@ -23,7 +47,7 @@ then
 	exit 0
 fi
 
-login=$(echo "$content" | grep -i "login:")
+login=$(echo "$content" | grep -i "login:") 
 portforward=$(echo "$content" | grep -i "portforward:")
 portforward=${portforward//"portforward:"/}
 portforward=( $portforward )
@@ -55,7 +79,7 @@ open_sftp() {
 		test -d ~/headupcommands_remotedirs/${password_name} || mkdir --mode 700 ~/headupcommands_remotedirs/${password_name}
 		echo $connstring
 		#fusermount -u ~/headupcommands_remotedirs/${password_name}
-		sshfs ${connstring}:/ ~/headupcommands_remotedirs/${password_name} -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3
+		sshfs ${connstring}:/ ~/headupcommands_remotedirs/${password_name} -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 -o follow_symlinks -o transform_symlinks
 		xdg-open ~/headupcommands_remotedirs/${password_name}
 	elif ! [ -z $(which gio) ]
 	then
@@ -108,7 +132,7 @@ open_ssh() {
 	if ! [[ -z `echo "$authmethods" | grep -i "password"` ]]; # password authentication allowed
 	then
 		echo -e "\033[0;31mThe server allows password authentication. Password authentication is considered old-fashioned and bad practice since many users love using insecure ones. Your administrator should consider to disable password authentication to encourage using more secure and modern authentication methods instead.\033[0;m"
-		if [ -z `ssh -V 2>&1 | grep 8.4` ];
+		if [ -z "$(ssh -V 2>&1 | grep 8.4)" ];
 		then
 			echo -e "\033[1;34mThis script recommends running at least version 8.4 of OpenSSH for all features this script uses!\033[0;m"
 		else
@@ -134,8 +158,12 @@ open_ssh() {
 				echo "Port forwarding $port"
 			done
 		fi
-	if [ -z "$arg" ];
-	then
+	if [ -z "$arg" ]; then
+		cdTo="./"
+		res=`echo $PWD | grep "$HOME/headupcommands_remotedirs/${password_name}"`
+		if [ `checkIfInMountedSFTPDirectoryMountedByThisScript` ]; then # it means this script has been called inside the mounted dir. The user wants to open an SSH connection to the server they connected to using SFTP. And the user wants the current working directory of the SSH connection to be the same as the one of the SFTP connection
+			cdTo=${PWD/"$HOME/headupcommands_remotedirs/${password_name}"/""}
+		fi
 		echo "----------------------- [START] SSH REMOTE SESSION ---------------------------------------"
 		# Thanks to https://askubuntu.com/questions/698957/ssh-into-a-machine-and-then-launch-an-interactive-command-line-program
 		ssh -t $host $options "
@@ -156,6 +184,7 @@ open_ssh() {
 		echo -e \"#!/bin/bash\n\n. ~/.bashrc\nalias sudo=\\\"\$sudoexecutablepath -A\\\"\" >~/headupcommands_init ;
 		echo -e \"\\033[0;34mTerminal ready!\\033[0;m\" ;
 		echo -e \"\\033[1;36mWelcome \${user[0]}\\033[0;m\" ;
+		cd $cdTo ;
 		\${execute[6]} --init-file ~/headupcommands_init ;
 		echo -e \"\\033[0;33mremoving secrets...\\033[0;m\" ;
 		rm ~/secrets ;
@@ -228,6 +257,4 @@ else # script has been started in the foreground
 	fi
 	echo "You can close this window"
     exit 0
-
-
 fi
