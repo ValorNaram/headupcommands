@@ -7,12 +7,13 @@ executionmode=`ps -o stat= -p $$`
 
 checkIfInMountedSFTPDirectoryMountedByThisScript() {
 	local res=`echo $PWD | grep "$HOME/headupcommands_remotedirs/$password_name"`
+	echo "Result: $res">~/test.txt
 	
 	if [ -n "$res" ]; then # it means this script has been called inside the mounted dir. The user wants to open an SSH connection to the server they connected to using SFTP. And the user wants the current working directory of the SSH connection to be the same as the one of the SFTP connection
-		echo 0 # means true
+		true # means true
 		return
 	fi
-	echo 1 # means false
+	false # means false
 	return
 }
 
@@ -26,12 +27,10 @@ fi
 oldpwd="$PWD"
 
 cd ~/.password-store
-result=$(tree -f -i -Q | grep -i "$input")
+result=$(tree -i | grep -i "${input}*\.gpg")
 result=$(echo "$result" | head -1)
 result=${result[0]}
 result=${result//.gpg/};
-result=${result//"./"/};
-result=${result//\"/};
 export password_file=$result
 result=${result//"/"/" "};
 result=( $result )
@@ -63,9 +62,14 @@ open_nothing() {
  
 open_firefox() {
 	# I use an anti-pattern to just support firefox as companies play their own part making tech harder and less user friendly by limiting the ability of humanity in tech. I just want to show that I can play that game too.
-	echo "opening url '$url' in firefox"
     
-	firefox $url
+	firefoxFlatpak=`flatpak list --columns=application | grep -i "firefox"`
+	if [ `which firefox` ]; then
+		echo "opening url '$url' in firefox"
+		firefox $url
+	elif [ -n "$firefoxFlatpak" ]; then
+		flatpak run "$firefoxFlatpak" "$url"
+	fi
 }
 
 open_sftp() {
@@ -99,21 +103,11 @@ open_sftp() {
 sshserver_authsupport() {
 	# code taken from https://serverfault.com/questions/938149/how-to-test-if-ssh-server-allows-passwords
 	authmethods=`ssh -v -n -o Batchmode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile "$host" 2>&1 | grep -i "Authentications that can continue" | head -1`
-	#res=`echo "$res" | grep "$2"`
 	return
-	#if ! [[ -z "$res" ]]; # password authentication allowed
-	#then
-#		true
-#		return
-#	fi
-#	false
-#	return
 }
 
 open_ssh() {
 	echo "Remote server: $1"
-	#local old_IFS="$IFS"
-	#IFS=$''
 	local host=`echo "$1"`
 	local options=""
 	
@@ -160,11 +154,13 @@ open_ssh() {
 		fi
 	if [ -z "$arg" ]; then
 		cdTo="./"
-		res=`echo $PWD | grep "$HOME/headupcommands_remotedirs/${password_name}"`
+		#res=`echo $PWD | grep "$HOME/headupcommands_remotedirs/${password_name}"`
 		if [ `checkIfInMountedSFTPDirectoryMountedByThisScript` ]; then # it means this script has been called inside the mounted dir. The user wants to open an SSH connection to the server they connected to using SFTP. And the user wants the current working directory of the SSH connection to be the same as the one of the SFTP connection
+			echo "in mounted SFTP"
 			cdTo=${PWD/"$HOME/headupcommands_remotedirs/${password_name}"/""}
 		fi
 		echo "----------------------- [START] SSH REMOTE SESSION ---------------------------------------"
+		escaped_password=`printf '%q' \"$passwd\"`
 		# Thanks to https://askubuntu.com/questions/698957/ssh-into-a-machine-and-then-launch-an-interactive-command-line-program
 		ssh -t $host $options "
 		execute=\`cat /etc/passwd | grep \$USER\` ; 
@@ -177,10 +173,10 @@ open_ssh() {
 		echo -e \"\\033[0;33msetting up password-less sudo ...\\033[0;m\" ;
 		export SUDO_ASKPASS=~/secrets ;
 		export sudoexecutablepath=\$(which sudo) ;
-		echo -e \"#!/bin/bash\necho \\\"$passwd\\\"\" >~/secrets ;
+		echo -e \"#!/bin/bash\necho '$escaped_password'\" >~/secrets ;
 		chmod o-rw ~/secrets ;
 		chmod u+x ~/secrets ;
-		echo -e \"\\033[0;33mchanging the way how sudo executes ...\\033[0;m\"
+		echo -e \"\\033[0;33mchanging the way how sudo executes ...\\033[0;m\" ;
 		echo -e \"#!/bin/bash\n\n. ~/.bashrc\nalias sudo=\\\"\$sudoexecutablepath -A\\\"\" >~/headupcommands_init ;
 		echo -e \"\\033[0;34mTerminal ready!\\033[0;m\" ;
 		echo -e \"\\033[1;36mWelcome \${user[0]}\\033[0;m\" ;
