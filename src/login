@@ -27,10 +27,11 @@ fi
 oldpwd="$PWD"
 
 cd ~/.password-store
-result=$(tree -i | grep -i "${input}*\.gpg")
+result=$(tree -if | grep -i "${input}*\.gpg")
 result=$(echo "$result" | head -1)
 result=${result[0]}
 result=${result//.gpg/};
+result=${result//"./"/};
 export password_file=$result
 result=${result//"/"/" "};
 result=( $result )
