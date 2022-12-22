@@ -7,7 +7,6 @@ executionmode=`ps -o stat= -p $$`
 
 checkIfInMountedSFTPDirectoryMountedByThisScript() {
 	local res=`echo $PWD | grep "$HOME/headupcommands_remotedirs/$password_name"`
-	echo "Result: $res">~/test.txt
 	
 	if [ -n "$res" ]; then # it means this script has been called inside the mounted dir. The user wants to open an SSH connection to the server they connected to using SFTP. And the user wants the current working directory of the SSH connection to be the same as the one of the SFTP connection
 		true # means true
@@ -17,7 +16,7 @@ checkIfInMountedSFTPDirectoryMountedByThisScript() {
 	return
 }
 
-if [ -z "$input" ] && [ `checkIfInMountedSFTPDirectoryMountedByThisScript` ]; then
+if [ -z "$input" ] && `checkIfInMountedSFTPDirectoryMountedByThisScript` ; then
 	input=${PWD/"$HOME/headupcommands_remotedirs/"/""}
 	input=${input//"/"/" "}
 	input=( $input )
@@ -84,7 +83,7 @@ open_sftp() {
 		test -d ~/headupcommands_remotedirs/${password_name} || mkdir --mode 700 ~/headupcommands_remotedirs/${password_name}
 		echo $connstring
 		#fusermount -u ~/headupcommands_remotedirs/${password_name}
-		sshfs ${connstring}:/ ~/headupcommands_remotedirs/${password_name} -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 -o follow_symlinks -o transform_symlinks
+		sshfs ${connstring}:/ ~/headupcommands_remotedirs/${password_name} -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 -o follow_symlinks -o transform_symlinks -o max_conns=8
 		xdg-open ~/headupcommands_remotedirs/${password_name}
 	elif ! [ -z $(which gio) ]
 	then
